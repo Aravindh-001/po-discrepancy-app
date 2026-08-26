@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import "./App.css";
 
 // Realistic Seeded Data with Invoice (IV) details for 3-Way Match
@@ -13,19 +13,19 @@ const initialPOs = [
     id: "PO1002", supplier: "XYZ Ltd", material: "Copper Wire", 
     poQty: 200, grQty: 160, invQty: 160, 
     poPrice: 250, grPrice: 250, invPrice: 250, 
-    sapStatus: "Blocked for Invoice Verification", exception: "GR-Shortage" // GR variance
+    sapStatus: "Blocked for Invoice Verification", exception: "GR-Shortage" 
   },
   { 
     id: "PO1003", supplier: "Global Parts", material: "Bolts", 
     poQty: 500, grQty: 500, invQty: 550, 
     poPrice: 10, grPrice: 10, invPrice: 10, 
-    sapStatus: "Blocked for Invoice Verification", exception: "Invoice Overshipment" // IV > GR
+    sapStatus: "Blocked for Invoice Verification", exception: "Invoice Overshipment" 
   },
   { 
     id: "PO1004", supplier: "Prime Supplies", material: "Bearings", 
     poQty: 100, grQty: 100, invQty: 100, 
     poPrice: 750, grPrice: 750, invPrice: 800, 
-    sapStatus: "Blocked for Invoice Verification", exception: "Price Variance" // IV Price > PO Price
+    sapStatus: "Blocked for Invoice Verification", exception: "Price Variance" 
   },
   { 
     id: "PO1005", supplier: "Tech Components", material: "Sensors", 
@@ -33,7 +33,7 @@ const initialPOs = [
     poPrice: 1200, grPrice: 1200, invPrice: 1200, 
     sapStatus: "Matched", exception: "None"
   },
-  // Edge case for Rule 1 (Over-delivery)
+  // Edge case: GR > PO (To test Rule 1)
   { 
     id: "PO1006", supplier: "Edge Corp", material: "Gloves", 
     poQty: 100, grQty: 120, invQty: 120, 
@@ -43,12 +43,25 @@ const initialPOs = [
 ];
 
 export default function App() {
-  const [poList, setPoList] = useState(initialPOs);
+  // PERSISTENCE: Load from localStorage if available, otherwise use initialPOs
+  const [poList, setPoList] = useState(() => {
+    const saved = localStorage.getItem("poData");
+    return saved ? JSON.parse(saved) : initialPOs;
+  });
+
   const [selectedPO, setSelectedPO] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("All");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  
+  // New State for Mandatory Fields Form
+  const [newPO, setNewPO] = useState({ supplier: "", material: "", ordered: "", received: "" });
+
+  // Save to localStorage whenever poList changes
+  useEffect(() => {
+    localStorage.setItem("poData", JSON.stringify(poList));
+  }, [poList]);
 
   // --- KPI CALCULATIONS ---
   const totalPOs = poList.length;
@@ -137,6 +150,42 @@ export default function App() {
     setSuccessMessage(`Decision recorded: ${action} for ${selectedPO.id}`);
   };
 
+  // --- ADD NEW PO WITH MANDATORY VALIDATION ---
+  const handleAddPO = (e) => {
+    e.preventDefault();
+    
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    // MANDATORY FIELD VALIDATION
+    if (!newPO.supplier || !newPO.material || !newPO.ordered || !newPO.received) {
+      setErrorMessage("Validation Failed: All fields (Supplier, Material, Ordered, Received) are required.");
+      return;
+    }
+
+    // Negative Quantity Validation
+    if (Number(newPO.ordered) < 0 || Number(newPO.received) < 0) {
+      setErrorMessage("Validation Failed: Quantity must be greater than or equal to 0.");
+      return;
+    }
+
+    const newPOData = {
+      id: `PO${1000 + poList.length + 1}`,
+      supplier: newPO.supplier,
+      material: newPO.material,
+      poQty: Number(newPO.ordered),
+      grQty: Number(newPO.received),
+      invQty: Number(newPO.received),
+      poPrice: 0, grPrice: 0, invPrice: 0,
+      sapStatus: "Blocked for Invoice Verification", 
+      exception: "New PO Input"
+    };
+
+    setPoList([...poList, newPOData]);
+    setNewPO({ supplier: "", material: "", ordered: "", received: "" });
+    setSuccessMessage(`New PO added successfully!`);
+  };
+
   const getStatusIcon = (status) => {
     if (status === "Matched") return "🟢";
     return "🔴";
@@ -160,6 +209,15 @@ export default function App() {
       {/* MESSAGES */}
       {errorMessage && <div className="error-alert">{errorMessage}</div>}
       {successMessage && <div className="success-alert">{successMessage}</div>}
+
+      {/* ADD NEW PO FORM (MANDATORY FIELDS) */}
+      <form className="add-po-form" onSubmit={handleAddPO}>
+        <input type="text" placeholder="Supplier (Required)" value={newPO.supplier} onChange={(e) => setNewPO({...newPO, supplier: e.target.value})} />
+        <input type="text" placeholder="Material (Required)" value={newPO.material} onChange={(e) => setNewPO({...newPO, material: e.target.value})} />
+        <input type="number" placeholder="Ordered Qty (Required)" value={newPO.ordered} onChange={(e) => setNewPO({...newPO, ordered: e.target.value})} />
+        <input type="number" placeholder="Received Qty (Required)" value={newPO.received} onChange={(e) => setNewPO({...newPO, received: e.target.value})} />
+        <button type="submit" className="btn btn-approve">Add New PO</button>
+      </form>
 
       {/* SEARCH & FILTER */}
       <div className="controls">
