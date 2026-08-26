@@ -317,3 +317,49 @@ tr.active-row td {
     transform: translateY(0);
   }
 }
+/* INTERACTIVE AI CHAT */
+.ai-chat-box {
+  margin-top: 15px;
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+}
+
+.ai-chat-label {
+  color: #94a3b8;
+  font-size: 13px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.ai-response {
+  background: #1e293b;
+  padding: 10px;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 14px;
+  margin-bottom: 10px;
+  border-left: 3px solid #3b82f6;
+}
+
+.ai-chat-form {
+  display: flex;
+  gap: 10px;
+}
+
+.ai-chat-form input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #1e293b;
+  color: white;
+}
+
+.btn-ask-ai {
+  background: #3b82f6;
+  padding: 8px 15px;
+  font-size: 13px;
+}

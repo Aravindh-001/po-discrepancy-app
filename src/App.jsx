@@ -1,49 +1,17 @@
 import { useState, useMemo, useEffect } from "react";
 import "./App.css";
 
-// Realistic Seeded Data with Invoice (IV) details for 3-Way Match
+// Realistic Seeded Data
 const initialPOs = [
-  { 
-    id: "PO1001", supplier: "ABC Metals", material: "Steel Rod", 
-    poQty: 100, grQty: 100, invQty: 100, 
-    poPrice: 500, grPrice: 500, invPrice: 500, 
-    sapStatus: "Matched", exception: "None"
-  },
-  { 
-    id: "PO1002", supplier: "XYZ Ltd", material: "Copper Wire", 
-    poQty: 200, grQty: 160, invQty: 160, 
-    poPrice: 250, grPrice: 250, invPrice: 250, 
-    sapStatus: "Blocked for Invoice Verification", exception: "GR-Shortage" 
-  },
-  { 
-    id: "PO1003", supplier: "Global Parts", material: "Bolts", 
-    poQty: 500, grQty: 500, invQty: 550, 
-    poPrice: 10, grPrice: 10, invPrice: 10, 
-    sapStatus: "Blocked for Invoice Verification", exception: "Invoice Overshipment" 
-  },
-  { 
-    id: "PO1004", supplier: "Prime Supplies", material: "Bearings", 
-    poQty: 100, grQty: 100, invQty: 100, 
-    poPrice: 750, grPrice: 750, invPrice: 800, 
-    sapStatus: "Blocked for Invoice Verification", exception: "Price Variance" 
-  },
-  { 
-    id: "PO1005", supplier: "Tech Components", material: "Sensors", 
-    poQty: 50, grQty: 50, invQty: 50, 
-    poPrice: 1200, grPrice: 1200, invPrice: 1200, 
-    sapStatus: "Matched", exception: "None"
-  },
-  // Edge case: GR > PO (To test Rule 1)
-  { 
-    id: "PO1006", supplier: "Edge Corp", material: "Gloves", 
-    poQty: 100, grQty: 120, invQty: 120, 
-    poPrice: 20, grPrice: 20, invPrice: 20, 
-    sapStatus: "Blocked for Invoice Verification", exception: "GR Over-Delivery"
-  },
+  { id: "PO1001", supplier: "ABC Metals", material: "Steel Rod", poQty: 100, grQty: 100, invQty: 100, poPrice: 500, grPrice: 500, invPrice: 500, sapStatus: "Matched", exception: "None" },
+  { id: "PO1002", supplier: "XYZ Ltd", material: "Copper Wire", poQty: 200, grQty: 160, invQty: 160, poPrice: 250, grPrice: 250, invPrice: 250, sapStatus: "Blocked for Invoice Verification", exception: "GR-Shortage" },
+  { id: "PO1003", supplier: "Global Parts", material: "Bolts", poQty: 500, grQty: 500, invQty: 550, poPrice: 10, grPrice: 10, invPrice: 10, sapStatus: "Blocked for Invoice Verification", exception: "Invoice Overshipment" },
+  { id: "PO1004", supplier: "Prime Supplies", material: "Bearings", poQty: 100, grQty: 100, invQty: 100, poPrice: 750, grPrice: 750, invPrice: 800, sapStatus: "Blocked for Invoice Verification", exception: "Price Variance" },
+  { id: "PO1005", supplier: "Tech Components", material: "Sensors", poQty: 50, grQty: 50, invQty: 50, poPrice: 1200, grPrice: 1200, invPrice: 1200, sapStatus: "Matched", exception: "None" },
+  { id: "PO1006", supplier: "Edge Corp", material: "Gloves", poQty: 100, grQty: 120, invQty: 120, poPrice: 20, grPrice: 20, invPrice: 20, sapStatus: "Blocked for Invoice Verification", exception: "GR Over-Delivery" },
 ];
 
 export default function App() {
-  // PERSISTENCE: Load from localStorage if available, otherwise use initialPOs
   const [poList, setPoList] = useState(() => {
     const saved = localStorage.getItem("poData");
     return saved ? JSON.parse(saved) : initialPOs;
@@ -54,39 +22,37 @@ export default function App() {
   const [filter, setFilter] = useState("All");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [typedText, setTypedText] = useState("");
   
-  // New State for Mandatory Fields Form
+  // NEW STATES FOR INTERACTIVE AI
+  const [aiInput, setAiInput] = useState("");
+  const [aiResponse, setAiResponse] = useState("");
+
   const [newPO, setNewPO] = useState({ supplier: "", material: "", ordered: "", received: "" });
 
-  // Save to localStorage whenever poList changes
   useEffect(() => {
     localStorage.setItem("poData", JSON.stringify(poList));
   }, [poList]);
 
-  // --- KPI CALCULATIONS ---
+  // KPI CALCULATIONS
   const totalPOs = poList.length;
   const exceptions = poList.filter(po => po.sapStatus !== "Matched").length;
   const matchRate = Math.round(((totalPOs - exceptions) / totalPOs) * 100);
   const avgResolution = "2.4 days"; 
 
-  // --- SEARCH & FILTER ---
+  // SEARCH & FILTER
   const filteredPOs = useMemo(() => {
     return poList.filter(po => {
-      const matchesSearch = po.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            po.supplier.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = po.id.toLowerCase().includes(searchTerm.toLowerCase()) || po.supplier.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesFilter = filter === "All" ? true : po.exception === filter;
       return matchesSearch && matchesFilter;
     });
   }, [poList, searchTerm, filter]);
 
-  // --- DATA GROUNDED AI (3-WAY MATCH ANALYZER) ---
+  // DATA GROUNDED AI ANALYZER
   const getAIAnalysis = (po) => {
     let summary = "";
     let risk = "";
-
-    const grQtyDiff = po.grQty - po.poQty;
-    const invQtyDiff = po.invQty - po.grQty;
-    const priceDiff = po.invPrice - po.poPrice;
 
     if (po.sapStatus === "Matched") {
       summary = `3-Way Match successful for PO ${po.id}. PO, GR, and Invoice (${po.invQty} units @ ₹${po.invPrice}) are perfectly aligned. No action required.`;
@@ -112,58 +78,98 @@ export default function App() {
     return { summary, risk };
   };
 
-  // --- VALIDATION LOGIC (SAP BUSINESS RULES) ---
+  // INTERACTIVE AI HANDLER (Grounded to PO Data)
+  const handleAskAI = (e) => {
+    e.preventDefault();
+    if (!selectedPO || !aiInput.trim()) return;
+
+    const question = aiInput.toLowerCase();
+    let response = "";
+
+    // Extract real data
+    const shortfall = selectedPO.poQty - selectedPO.grQty;
+    const priceVariance = selectedPO.invPrice - selectedPO.poPrice;
+
+    // Logic to answer only based on PO Data
+    if (question.includes("shortfall") || question.includes("quantity") || question.includes("received")) {
+      response = `Based on the data for ${selectedPO.id}: The PO quantity is ${selectedPO.poQty}, GR is ${selectedPO.grQty}, and Invoice is ${selectedPO.invQty}. The shortfall is ${shortfall} units (${Math.round((shortfall / selectedPO.poQty) * 100)}%).`;
+    } 
+    else if (question.includes("price") || question.includes("cost") || question.includes("overbilling")) {
+      response = `Based on the data for ${selectedPO.id}: The Expected Price is ₹${selectedPO.poPrice} and the Actual Price is ₹${selectedPO.invPrice}. The variance is ₹${priceVariance}/unit, leading to a potential leakage of ₹${priceVariance * selectedPO.invQty}.`;
+    } 
+    else if (question.includes("action") || question.includes("recommend") || question.includes("do")) {
+      response = `Recommended Action for ${selectedPO.id}: ${getAIAnalysis(selectedPO).summary}`;
+    } 
+    else if (question.includes("risk")) {
+      response = `Risk Level for ${selectedPO.id}: ${getAIAnalysis(selectedPO).risk}`;
+    } 
+    else {
+      // Proves it's not a generic chatbot
+      response = `I am grounded to the data of PO ${selectedPO.id}. Please ask specific questions regarding quantity shortfalls, price variances, recommended actions, or risk levels.`;
+    }
+
+    setAiResponse(response);
+    setAiInput("");
+  };
+
+  // TYPEWRITER EFFECT
+  const handleSelectPO = (po) => {
+    setSelectedPO(po);
+    setErrorMessage("");
+    setSuccessMessage("");
+    setAiResponse(""); // Reset AI chat when new PO is selected
+    
+    setTypedText(""); 
+    const fullText = getAIAnalysis(po).summary;
+    
+    let i = 0;
+    const interval = setInterval(() => {
+      setTypedText(fullText.substring(0, i));
+      i++;
+      if (i > fullText.length) {
+        clearInterval(interval);
+      }
+    }, 20); 
+  };
+
+  // VALIDATION LOGIC
   const handleDecision = (action) => {
     setErrorMessage("");
     setSuccessMessage("");
 
     if (!selectedPO) return;
-
     if (selectedPO.processed) {
       setErrorMessage("This purchase order has already been processed.");
       return;
     }
-
-    // Rule 1: GR > PO
     if (selectedPO.grQty > selectedPO.poQty) {
       setErrorMessage("Validation Failed: Goods Receipt quantity cannot exceed Purchase Order quantity.");
       return;
     }
-
-    // Rule 2: Negative Quantity
     if (selectedPO.grQty < 0 || selectedPO.invQty < 0) {
       setErrorMessage("Validation Failed: Quantity must be greater than or equal to 0.");
       return;
     }
-
-    // Rule 3: Invoice Price > PO Price (SAP Tolerance Check)
     if (selectedPO.invPrice > selectedPO.poPrice) {
       setErrorMessage("Validation Failed: Invoice price exceeds PO price. Must escalate to manager.");
       return;
     }
 
-    // Pass validation, update status to SAP-like status
-    setPoList(prev => prev.map(po => 
-      po.id === selectedPO.id ? { ...po, sapStatus: action, processed: true } : po
-    ));
+    setPoList(prev => prev.map(po => po.id === selectedPO.id ? { ...po, sapStatus: action, processed: true } : po));
     setSelectedPO(prev => ({ ...prev, sapStatus: action, processed: true }));
     setSuccessMessage(`Decision recorded: ${action} for ${selectedPO.id}`);
   };
 
-  // --- ADD NEW PO WITH MANDATORY VALIDATION ---
+  // ADD NEW PO
   const handleAddPO = (e) => {
     e.preventDefault();
-    
     setErrorMessage("");
     setSuccessMessage("");
 
-    // MANDATORY FIELD VALIDATION
     if (!newPO.supplier || !newPO.material || !newPO.ordered || !newPO.received) {
       setErrorMessage("Validation Failed: All fields (Supplier, Material, Ordered, Received) are required.");
       return;
     }
-
-    // Negative Quantity Validation
     if (Number(newPO.ordered) < 0 || Number(newPO.received) < 0) {
       setErrorMessage("Validation Failed: Quantity must be greater than or equal to 0.");
       return;
@@ -210,7 +216,7 @@ export default function App() {
       {errorMessage && <div className="error-alert">{errorMessage}</div>}
       {successMessage && <div className="success-alert">{successMessage}</div>}
 
-      {/* ADD NEW PO FORM (MANDATORY FIELDS) */}
+      {/* ADD NEW PO FORM */}
       <form className="add-po-form" onSubmit={handleAddPO}>
         <input type="text" placeholder="Supplier (Required)" value={newPO.supplier} onChange={(e) => setNewPO({...newPO, supplier: e.target.value})} />
         <input type="text" placeholder="Material (Required)" value={newPO.material} onChange={(e) => setNewPO({...newPO, material: e.target.value})} />
@@ -221,12 +227,7 @@ export default function App() {
 
       {/* SEARCH & FILTER */}
       <div className="controls">
-        <input 
-          type="text" 
-          placeholder="Search PO / Supplier" 
-          value={searchTerm} 
-          onChange={(e) => setSearchTerm(e.target.value)} 
-        />
+        <input type="text" placeholder="Search PO / Supplier" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="All">All</option>
           <option value="GR-Shortage">GR Shortage</option>
@@ -253,7 +254,7 @@ export default function App() {
             </thead>
             <tbody>
               {filteredPOs.map(po => (
-                <tr key={po.id} onClick={() => { setSelectedPO(po); setErrorMessage(""); setSuccessMessage(""); }} className={selectedPO?.id === po.id ? "active-row" : ""}>
+                <tr key={po.id} onClick={() => handleSelectPO(po)} className={selectedPO?.id === po.id ? "active-row" : ""}>
                   <td>{po.id}</td>
                   <td>{po.supplier}</td>
                   <td>{po.poQty}</td>
@@ -282,8 +283,23 @@ export default function App() {
               {/* AI ANALYSIS SECTION */}
               <div className="ai-box">
                 <h4>🤖 AI 3-WAY MATCH ANALYSIS</h4>
-                <p>{getAIAnalysis(selectedPO).summary}</p>
+                <p>{typedText || "Analyzing discrepancy..."}</p>
                 <p className="risk-level">Risk Level: {getAIAnalysis(selectedPO).risk}</p>
+              </div>
+
+              {/* INTERACTIVE AI SECTION */}
+              <div className="ai-chat-box">
+                <p className="ai-chat-label">💬 Ask AI about this PO</p>
+                {aiResponse && <div className="ai-response">{aiResponse}</div>}
+                <form onSubmit={handleAskAI} className="ai-chat-form">
+                  <input 
+                    type="text" 
+                    placeholder="e.g., What is the shortfall? What action should I take?" 
+                    value={aiInput} 
+                    onChange={(e) => setAiInput(e.target.value)} 
+                  />
+                  <button type="submit" className="btn btn-ask-ai">Ask</button>
+                </form>
               </div>
 
               {/* ACTION BUTTONS */}
