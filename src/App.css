@@ -1,6 +1,6 @@
 .app-container {
   min-height: 100vh;
-  padding: 40px;
+  padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
   font-family: 'Segoe UI', sans-serif;
@@ -25,6 +25,7 @@
 /* KPI CARDS */
 .kpi-cards {
   display: flex;
+  flex-wrap: wrap; /* Allows cards to wrap on small screens */
   gap: 15px;
   margin-bottom: 30px;
 }
@@ -36,6 +37,7 @@
   border: 1px solid #334155;
   text-align: center;
   flex: 1;
+  min-width: 150px; /* Prevents them from getting too small */
 }
 
 .kpi-label {
@@ -79,6 +81,7 @@
 /* ADD NEW PO FORM */
 .add-po-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 20px;
   padding: 15px;
@@ -89,6 +92,7 @@
 
 .add-po-form input {
   flex: 1;
+  min-width: 150px;
   padding: 10px;
   border-radius: 6px;
   border: 1px solid #334155;
@@ -97,12 +101,14 @@
 }
 
 .add-po-form button {
+  padding: 10px 20px;
   min-width: 120px;
 }
 
 /* SEARCH & FILTER */
 .controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 15px;
   margin-bottom: 20px;
 }
@@ -119,6 +125,7 @@
 
 .controls input {
   flex: 1;
+  min-width: 200px;
 }
 
 .controls select {
@@ -130,20 +137,22 @@
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   gap: 20px;
+  align-items: start; /* Prevents panels from stretching too tall */
 }
 
-/* TABLE */
+/* TABLE - THIS IS THE KEY FIX */
 .table-container {
   background: #1e293b;
   border-radius: 12px;
   border: 1px solid #334155;
-  overflow: hidden;
-  height: fit-content;
+  overflow-x: auto; /* Allows horizontal scrolling if table is too wide */
+  width: 100%;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px; /* Ensures table doesn't crush into unreadable blocks */
 }
 
 th {
@@ -190,6 +199,8 @@ tr.active-row td {
   border-radius: 12px;
   border: 1px solid #334155;
   padding: 25px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .details-box h2 {
@@ -259,6 +270,57 @@ tr.active-row td {
   margin-bottom: 0 !important;
 }
 
+/* INTERACTIVE AI CHAT */
+.ai-chat-box {
+  margin-top: 15px;
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+}
+
+.ai-chat-label {
+  color: #94a3b8;
+  font-size: 13px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.ai-response {
+  background: #1e293b;
+  padding: 10px;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 14px;
+  margin-bottom: 10px;
+  border-left: 3px solid #3b82f6;
+}
+
+.ai-chat-form {
+  display: flex;
+  gap: 10px;
+}
+
+.ai-chat-form input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #1e293b;
+  color: white;
+}
+
+.btn-ask-ai {
+  background: #3b82f6;
+  padding: 8px 15px;
+  font-size: 13px;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 /* ACTION BUTTONS */
 .action-buttons {
   display: flex;
@@ -317,49 +379,36 @@ tr.active-row td {
     transform: translateY(0);
   }
 }
-/* INTERACTIVE AI CHAT */
-.ai-chat-box {
-  margin-top: 15px;
-  margin-bottom: 20px;
-  padding: 10px;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  background: #0f172a;
+
+/* RESPONSIVE MEDIA QUERIES (FOR SMALLER SCREENS) */
+@media (max-width: 1024px) {
+  .main-layout {
+    grid-template-columns: 1fr; /* Stack table and details panel vertically */
+  }
+  
+  .right-panel {
+    margin-top: 20px;
+  }
 }
 
-.ai-chat-label {
-  color: #94a3b8;
-  font-size: 13px;
-  margin-bottom: 10px;
-  font-weight: 600;
-}
+@media (max-width: 600px) {
+  .app-container {
+    padding: 10px;
+  }
 
-.ai-response {
-  background: #1e293b;
-  padding: 10px;
-  border-radius: 6px;
-  color: #e2e8f0;
-  font-size: 14px;
-  margin-bottom: 10px;
-  border-left: 3px solid #3b82f6;
-}
+  .dashboard-header h1 {
+    font-size: 22px;
+  }
 
-.ai-chat-form {
-  display: flex;
-  gap: 10px;
-}
+  .add-po-form {
+    flex-direction: column; /* Stack form fields vertically */
+  }
 
-.ai-chat-form input {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #334155;
-  border-radius: 6px;
-  background: #1e293b;
-  color: white;
-}
+  .details-grid-3 {
+    grid-template-columns: 1fr; /* Stack data boxes on mobile */
+  }
 
-.btn-ask-ai {
-  background: #3b82f6;
-  padding: 8px 15px;
-  font-size: 13px;
+  .ai-chat-form {
+    flex-direction: column; /* Stack chat input and button */
+  }
 }
